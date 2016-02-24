@@ -15,12 +15,18 @@ class ESN:
         self.res_size = res_size
         self.a = a
         self.Win = (npr.rand(self.res_size,1 + self.in_size)-0.5) * 1
-        self.W npr.rand(self.res_size, self.res_size) - 0.5
+        self.W = npr.rand(self.res_size, self.res_size) - 0.5
         self.nonlinear = np.tanh
         # relu:
         # self.nonlinear = lambda x: np.maximum(x, 0)
         self.W *= spectral_radius / self.spectral_radius
         self.Wout = None #untrained as of yet
+
+    def run_activation(self, prev_activation, datum):
+        biased_data = np.atleast_2d(np.hstack((1, datum))).T
+        internal_signal = self.W.dot(prev_activation)
+        return (1-self.a) * prev_activation + \
+               self.a * self.nonlinear(np.dot(self.Win, biased_data) + internal_signal)
 
     def run_reservoir(self, data, init_len):
         train_len = len(data)
@@ -29,14 +35,9 @@ class ESN:
         for t in range(len(data)):
             if t % 1000 == 0:
                 print "running: ", t, " / ", len(data), datetime.datetime.now()
-            u = data[t]
-            new_u = np.atleast_2d(np.hstack((1, u))).T
-            internal_signal = self.W.dot(x)
-            x = (1-self.a) * x +\
-                self.a * self.nonlinear(np.dot(self.Win, new_u) +\
-                internal_signal)
+            x = self.run_activation(x, data[t])
             if t >= init_len:
-                res[:, t-init_len] = np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T))[0,:]
+                res[:, t-init_len] = np.hstack((np.atleast_2d(1), np.atleast_2d(data[t]), x.T))[0,:]
         return res, x
 
     def train(self, res, data, reg):
@@ -54,11 +55,7 @@ class ESN:
         for t in xrange(test_len):
             if t % 1000 == 0:
                 print "generating: ", t, " / ", test_len, datetime.datetime.now()
-            new_u = np.atleast_2d(np.hstack((1, u))).T
-            internal_signal = self.W.dot(x)
-            x = (1-self.a) * x +\
-                self.a * self.nonlinear(np.dot(self.Win, new_u) +\
-                internal_signal)
+            x = self.run_activation(x, u)
             y = np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T)).T)
             y = np.atleast_2d(y)
             Y[:, t] = y[:, 0]
@@ -71,11 +68,7 @@ class ESN:
         for t in xrange(test_len):
             if t % 1000 == 0:
                 print "generating: ", t, " / ", test_len, datetime.datetime.now()
-            new_u = np.atleast_2d(np.hstack((1, u))).T
-            internal_signal = self.W.dot(x)
-            x = (1-self.a) * x +\
-                self.a * self.nonlinear(np.dot(self.Win, new_u) +\
-                internal_signal)
+            x = self.run_activation(x, u)
             y = np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T)).T)
             y = np.atleast_2d(y)
             Y[:, t] = y[:, 0]
@@ -83,19 +76,12 @@ class ESN:
         return Y
 
     def get_spectral_radius(self):
-        assert isinstance(self.W, np.ndarray) # so no sparse matrices!
         return np.max(np.abs(npl.eig(self.W)[0]))
 
     spectral_radius = property(get_spectral_radius)
 
 def mse(data, pred, error_len):
     return np.sum(np.square(data.ravel()[:error_len] - pred.ravel()[:error_len])) / error_len
-
-def extremal_se(data, pred, error_len):
-    return np.max(np.square(data.ravel()[:error_len] - pred.ravel()[:error_len]))
-
-def median_se(data, pred, error_len):
-    return np.median(np.square(data.ravel()[:error_len] - pred.ravel()[:error_len]))
 
 if __name__ == "__main__":
     data = np.loadtxt('MackeyGlass_t17.txt')
@@ -122,19 +108,14 @@ if __name__ == "__main__":
                     out_size=1,
                     res_size=500,
                     a=1.0,
-                    spectral_radius=1.1,
-                    w_method="uniform")
+                    spectral_radius=1.1)
             print "finished creating net..."
-            # res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
-            x = net.mlp_train(data=train_data, init_len=burnin_length)
-            out = net.mlp_predict(data[train_length], x, data, test_length, train_length)
-            # out = net.mlp_generate(data[train_length], x, test_length)
-            print out
-            print out.shape
-            # net.train(res=res, data=train_target, reg=reg)
-            # out = net.generate(data[train_length], x, test_length)
+            res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
+            net.train(res=res, data=train_target, reg=reg)
+            out = net.generate(data[train_length], x, test_length)
             # out = net.predict(data[train_length], x, data, test_length, train_length)
             plt.close()
+            print out.T
             plt.plot(out.T)
             plt.plot(test_data)
             plt.show()
