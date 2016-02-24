@@ -28,6 +28,9 @@ class ESN:
         return (1-self.a) * prev_activation + \
                self.a * self.nonlinear(np.dot(self.Win, biased_data) + internal_signal)
 
+    def get_output(self, activatoin, datum):
+        return np.atleast_2d(np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(datum), activation.T)).T))
+
     def run_reservoir(self, data, init_len):
         train_len = len(data)
         res = np.zeros((1+self.in_size+self.res_size, train_len-init_len))
@@ -56,8 +59,7 @@ class ESN:
             if t % 1000 == 0:
                 print "generating: ", t, " / ", test_len, datetime.datetime.now()
             x = self.run_activation(x, u)
-            y = np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T)).T)
-            y = np.atleast_2d(y)
+            y = self.get_output(x, u)
             Y[:, t] = y[:, 0]
             u = y[:, 0]
         return Y
@@ -69,8 +71,7 @@ class ESN:
             if t % 1000 == 0:
                 print "generating: ", t, " / ", test_len, datetime.datetime.now()
             x = self.run_activation(x, u)
-            y = np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T)).T)
-            y = np.atleast_2d(y)
+            y = self.get_output(x, u)
             Y[:, t] = y[:, 0]
             u = data[train_len + t + 1]
         return Y
