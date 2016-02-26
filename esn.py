@@ -16,9 +16,9 @@ class ESN:
         self.a = a
         self.Win = (npr.rand(self.res_size,1 + self.in_size)-0.5) * 1
         self.W = npr.rand(self.res_size, self.res_size) - 0.5
+        # only for the diag experiment
+        self.W[np.invert(np.eye(*self.W.shape, dtype=np.bool))] = 0
         self.nonlinear = np.tanh
-        # relu:
-        # self.nonlinear = lambda x: np.maximum(x, 0)
         self.W *= spectral_radius / self.spectral_radius
         self.Wout = None #untrained as of yet
 
@@ -28,7 +28,7 @@ class ESN:
         return (1-self.a) * prev_activation + \
                self.a * self.nonlinear(np.dot(self.Win, biased_data) + internal_signal)
 
-    def get_output(self, activatoin, datum):
+    def get_output(self, activation, datum):
         return np.atleast_2d(np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(datum), activation.T)).T))
 
     def run_reservoir(self, data, init_len):
@@ -107,9 +107,9 @@ if __name__ == "__main__":
             net = ESN(
                     in_size=1,
                     out_size=1,
-                    res_size=500,
+                    res_size=200,
                     a=1.0,
-                    spectral_radius=1.1)
+                    spectral_radius=0.9)
             print "finished creating net..."
             res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
             net.train(res=res, data=train_target, reg=reg)
