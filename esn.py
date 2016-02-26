@@ -44,16 +44,27 @@ class ESN:
         return res, x
 
     def train(self, res, data, reg):
-        # ridge regression
+        # ridge regression, with analytic solution
         print "begin training..."
         print data.shape
         print res.shape
         self.Wout = np.dot(np.dot(data.T, res.T), npl.inv(np.dot(res, res.T) +\
             reg * np.eye(1 + self.in_size + self.res_size)))
+        print "wout shape: ", self.Wout.shape
         print "finished training..."
 
-    def sgd_train(self, res, data, reg):
-        pass
+    def batch_sgd_train(self, res, data, reg):
+        # prototype for online eval-trainer
+        self.Wout = npr.normal(size=(1 + self.in_size + self.res_size, self.out_size))
+        print "begin training..."
+        print res[:, :-1].T.shape
+        for idx, res_datum in enumerate(res[:, :-1].T):
+            res_datum = np.atleast_2d(res_datum)
+            prediction = res_datum.dot(self.Wout)
+            delta = prediction - data[idx+1]
+            diff = res_datum.T.dot(delta)
+            self.Wout -= diff
+        print "finished training..."
 
     def generate(self, init_u, init_x, test_len):
         u, x = init_u, init_x
@@ -115,7 +126,7 @@ if __name__ == "__main__":
                     spectral_radius=0.9)
             print "finished creating net..."
             res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
-            net.train(res=res, data=train_target, reg=reg)
+            net.batch_sgd_train(res=res, data=train_target, reg=reg)
             out = net.generate(data[train_length], x, test_length)
             # out = net.predict(data[train_length], x, data, test_length, train_length)
             plt.close()
