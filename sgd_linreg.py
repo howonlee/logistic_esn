@@ -27,5 +27,3 @@ if __name__ == "__main__":
         energies.append(np.sum(delta ** 2))
         diff = datum.T.dot(delta)
         params -= 0.0001 * diff
-    plt.plot(energies)
-    plt.show()
