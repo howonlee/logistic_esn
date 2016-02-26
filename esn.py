@@ -52,6 +52,9 @@ class ESN:
             reg * np.eye(1 + self.in_size + self.res_size)))
         print "finished training..."
 
+    def sgd_train(self, res, data, reg):
+        pass
+
     def generate(self, init_u, init_x, test_len):
         u, x = init_u, init_x
         Y = np.zeros((self.out_size, test_len))
