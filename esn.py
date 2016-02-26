@@ -53,7 +53,7 @@ class ESN:
         print "wout shape: ", self.Wout.shape
         print "finished training..."
 
-    def batch_sgd_train(self, res, data, reg):
+    def batch_sgd_train(self, res, data, reg, alpha=0.0001):
         # prototype for online eval-trainer
         self.Wout = npr.normal(size=(1 + self.in_size + self.res_size, self.out_size))
         print "begin training..."
@@ -63,7 +63,7 @@ class ESN:
             prediction = res_datum.dot(self.Wout)
             delta = prediction - data[idx+1]
             diff = res_datum.T.dot(delta)
-            self.Wout -= diff
+            self.Wout -= alpha * diff
         print "finished training..."
 
     def generate(self, init_u, init_x, test_len):
