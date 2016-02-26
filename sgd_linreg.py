@@ -6,30 +6,26 @@ import matplotlib.pyplot as plt
 ### we actually really need this to be truly online
 
 def generate_x(ys):
-    xs = np.zeros((len(ys), 12))
+    xs = np.zeros((len(ys), 3))
     for idx, y in enumerate(ys):
-        new_x = np.hstack((y, y*2, y - 300, y * 100))
+        new_x = y * 2
         xs[idx] = new_x
     xs += npr.random() * 0.01
     return xs
 
 
 if __name__ == "__main__":
-    y = npr.normal(size=(300,3))
+    y = npr.normal(size=(20000,3))
     X = generate_x(y)
-    params = npr.normal(size=(12,3))
-    print params
+    params = npr.normal(size=(3,3))
     energies = []
 
     # begin gradient descent
     for idx, datum in enumerate(X):
         res = datum.dot(params)
-        delta = res - y[idx]
-        energy = np.sum(delta ** 2)
-        print "energy: ", energy
-        energies.append(energy)
-        diff = np.outer(delta, datum).T
-        # print "diff: ", diff
-        params -= 0.0005 * diff
+        delta = (res - y[idx])
+        energies.append(np.sum(delta ** 2))
+        diff = datum.T.dot(delta)
+        params -= 0.0001 * diff
     plt.plot(energies)
     plt.show()
