@@ -53,7 +53,7 @@ class ESN:
         print "wout shape: ", self.Wout.shape
         print "finished training..."
 
-    def batch_sgd_train(self, res, data, reg, alpha=0.0001):
+    def batch_sgd_train(self, res, data, reg, alpha=0.001):
         # prototype for online eval-trainer
         self.Wout = npr.normal(size=(1 + self.in_size + self.res_size, self.out_size))
         print "begin training..."
@@ -63,7 +63,8 @@ class ESN:
             prediction = res_datum.dot(self.Wout)
             delta = prediction - data[idx+1]
             diff = res_datum.T.dot(delta)
-            self.Wout -= alpha * diff
+            self.Wout -= (alpha * diff) - (reg * self.Wout)
+        self.Wout = self.Wout.ravel()
         print "finished training..."
 
     def generate(self, init_u, init_x, test_len):
@@ -104,7 +105,7 @@ if __name__ == "__main__":
     burnin_length = 1000
     test_length = 3000
     error_length = 3000
-    reg = 1e-6
+    reg = 1e-8
     num_total_iters = 5
 
     train_data = data[:train_length]
@@ -126,6 +127,7 @@ if __name__ == "__main__":
                     spectral_radius=0.9)
             print "finished creating net..."
             res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
+            # net.train(res=res, data=train_target, reg=reg)
             net.batch_sgd_train(res=res, data=train_target, reg=reg)
             out = net.generate(data[train_length], x, test_length)
             # out = net.predict(data[train_length], x, data, test_length, train_length)
