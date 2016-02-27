@@ -32,27 +32,19 @@ class ESN:
         self.mlp["inputs"] = tf.placeholder(tf.float32, shape=[None, self.res_size + 1], name="X")
         self.mlp["outputs"] = tf.placeholder(tf.float32, shape=[None, self.out_size], name="Y")
         xavier_ih = math.sqrt(6.0 / (self.res_size + self.in_size + 1 + mlp_hiddens))
-        xavier_hh = math.sqrt(6.0 / (mlp_hiddens + mlp_hiddens))
-        xavier_bh = math.sqrt(6.0 / (mlp_hiddens))
         xavier_ho = math.sqrt(6.0 / (mlp_hiddens + self.out_size))
         xavier_bo = math.sqrt(6.0 / (self.out_size))
         # bias is added in beforehands, that's the +1
         self.mlp["w_ih"] = tf.Variable(tf.random_uniform([self.res_size + 1, mlp_hiddens],
             minval=-xavier_ih, maxval=xavier_ih, dtype=tf.float32))
-        self.mlp["w_hh"] = tf.Variable(tf.random_uniform([mlp_hiddens, mlp_hiddens],
-            minval=-xavier_hh, maxval=xavier_hh, dtype=tf.float32)) # not recurrent, this MLP! just deep.
         self.mlp["w_ho"] = tf.Variable(tf.random_uniform([mlp_hiddens, self.out_size],
             minval=-xavier_ho, maxval=xavier_ho, dtype=tf.float32))
-        self.mlp["b_hh"] = tf.Variable(tf.random_uniform([mlp_hiddens],
-            minval=-xavier_bh, maxval=xavier_bh, dtype=tf.float32))
         self.mlp["b_ho"] = tf.Variable(tf.random_uniform([self.out_size],
             minval=-xavier_bo, maxval=xavier_bo, dtype=tf.float32))
         # el problemo
         self.mlp["h1"] = tf.nn.relu(tf.matmul(self.mlp["inputs"], self.mlp["w_ih"]))
         self.mlp["h1"] = tf.nn.dropout(self.mlp["h1"], self.mlp["keep_prob"])
-        self.mlp["h2"] = tf.nn.relu(tf.add(tf.matmul(self.mlp["h1"], self.mlp["w_hh"]), self.mlp["b_hh"]))
-        self.mlp["h2"] = tf.nn.dropout(self.mlp["h2"], self.mlp["keep_prob"])
-        self.mlp["out"] = tf.add(tf.matmul(self.mlp["h2"], self.mlp["w_ho"]), self.mlp["b_ho"])
+        self.mlp["out"] = tf.add(tf.matmul(self.mlp["h1"], self.mlp["w_ho"]), self.mlp["b_ho"])
         # we are regressing! no cross-entropy for us!
         self.mlp["loss"] = tf.reduce_sum(tf.pow(self.mlp["out"]-self.mlp["outputs"], 2))
         self.mlp["train"] = tf.train.AdamOptimizer(0.001).minimize(self.mlp["loss"])
@@ -167,7 +159,7 @@ if __name__ == "__main__":
                     out_size=1,
                     res_size=500,
                     a=1.0,
-                    spectral_radius=1.1)
+                    spectral_radius=0.9)
             print "finished creating net..."
             x = net.mlp_train(data=train_data, init_len=burnin_length)
             # out = net.mlp_predict(data[train_length], x, data, test_length, train_length)
