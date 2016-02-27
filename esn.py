@@ -29,7 +29,7 @@ class ESN:
     def setup_mlp(self):
         self.mlp["keep_prob"] = tf.placeholder(tf.float32)
         self.mlp["inputs"] = tf.placeholder(tf.float32, shape=[None, self.res_size + 1], name="X")
-        self.mlp["inputs"] = tf.nn.dropout(self.mlp["inputs"], self.mlp["keep_prob"])
+        # self.mlp["inputs"] = tf.nn.dropout(self.mlp["inputs"], self.mlp["keep_prob"])
         self.mlp["outputs"] = tf.placeholder(tf.float32, shape=[None, self.out_size], name="Y")
         xavier_io = math.sqrt(6.0 / (self.res_size + self.in_size + 1 + self.out_size))
         # bias is added in beforehands, that's the +1
@@ -38,8 +38,8 @@ class ESN:
         self.mlp["out"] = tf.matmul(self.mlp["inputs"], self.mlp["w_io"])
         self.mlp["loss"] = tf.nn.l2_loss(self.mlp["out"] - self.mlp["outputs"])
         self.mlp["global_step"] = tf.Variable(0, trainable=False)
-        learning_rate = tf.train.exponential_decay(0.01, self.mlp["global_step"],
-                                                   100, 0.96, staircase=True)
+        learning_rate = tf.train.exponential_decay(0.05, self.mlp["global_step"],
+                                                   1000, 0.96, staircase=True)
         self.mlp["train"] = tf.train.AdamOptimizer(learning_rate).minimize(self.mlp["loss"], global_step=self.mlp["global_step"])
         init = tf.initialize_all_variables()
         self.tf_sess.run(init)
