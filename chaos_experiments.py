@@ -31,12 +31,12 @@ def test_esn(data):
 def test_logistic(data):
     for _ in xrange(10):
         npr.seed(int(time.time()))
-        fold_in_data = lambda state, data: saturate(state + data)
+        fold_in_data = lambda state, data: saturate(state + 2 * data)
         state = npr.random(100)
         w_in = npr.random(size=(100, 1)) - 0.5
         activation = []
         for x in xrange(2500):
-            state = 2.5 * np.multiply(fold_in_data(state, np.dot(w_in, data[x])), 1 - fold_in_data(state, np.dot(w_in, data[x])))
+            state = 5 * np.multiply(fold_in_data(state, np.dot(w_in, data[x])), 1 - fold_in_data(state, np.dot(w_in, data[x])))
             if x % 500 == 0:
                 print x
             if x > 500:
@@ -46,7 +46,6 @@ def test_logistic(data):
         plt.show()
 
 if __name__ == "__main__":
-    # state = npr.random(100) - 0.5
     data = np.loadtxt('MackeyGlass_t17.txt')
-    test_logistic(data)
-    # test_esn(data)
+    # test_logistic(data)
+    test_esn(data)
