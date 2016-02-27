@@ -30,6 +30,7 @@ class ESN:
         mlp_hiddens = 300 # should be much much less than res_size
         self.mlp["keep_prob"] = tf.placeholder(tf.float32)
         self.mlp["inputs"] = tf.placeholder(tf.float32, shape=[None, self.res_size + 1], name="X")
+        self.mlp["inputs"] = tf.nn.dropout(self.mlp["inputs"], self.mlp["keep_prob"])
         self.mlp["outputs"] = tf.placeholder(tf.float32, shape=[None, self.out_size], name="Y")
         xavier_io = math.sqrt(6.0 / (self.res_size + self.in_size + 1 + self.out_size))
         # bias is added in beforehands, that's the +1
@@ -37,7 +38,7 @@ class ESN:
             minval=-xavier_io, maxval=xavier_io, dtype=tf.float32))
         self.mlp["out"] = tf.matmul(self.mlp["inputs"], self.mlp["w_io"])
         self.mlp["loss"] = tf.nn.l2_loss(self.mlp["out"] - self.mlp["outputs"])
-        self.mlp["train"] = tf.train.AdamOptimizer(1e-7).minimize(self.mlp["loss"])
+        self.mlp["train"] = tf.train.AdamOptimizer(1e-3).minimize(self.mlp["loss"])
         init = tf.initialize_all_variables()
         self.tf_sess.run(init)
 
@@ -51,11 +52,11 @@ class ESN:
         # use only dropout
         num_epochs = 5
         print "begin training MLP..."
-        curr_x = npr.random(size=(self.res_size,1)) * 0.1
         for epoch in xrange(num_epochs):
             print epoch, " / ", num_epochs
             data_idx = 0
             # begin burnin
+            curr_x = npr.random(size=(self.res_size,1)) * 0.1
             for x_idx in xrange(init_len):
                 curr_x = self.run_activation(curr_x, data[data_idx])
                 data_idx += 1
@@ -150,7 +151,7 @@ if __name__ == "__main__":
                     out_size=1,
                     res_size=500,
                     a=1.0,
-                    spectral_radius=1.3)
+                    spectral_radius=1.25)
             print "finished creating net..."
             x = net.mlp_train(data=train_data, init_len=burnin_length)
             # out = net.mlp_predict(data[train_length], x, data, test_length, train_length)
