@@ -53,7 +53,7 @@ class ESN:
         print "wout shape: ", self.Wout.shape
         print "finished training..."
 
-    def batch_sgd_train(self, res, data, reg, alpha=0.01):
+    def batch_sgd_train(self, res, data, reg, alpha=0.001):
         # prototype for online eval-trainer
         self.Wout = (npr.random(size=(1 + self.in_size + self.res_size, self.out_size)) - 0.5) * 2
         # try that xavier init!
@@ -64,9 +64,9 @@ class ESN:
             for idx, res_datum in enumerate(res[:, :-1].T):
                 res_datum = np.atleast_2d(res_datum)
                 prediction = res_datum.dot(self.Wout)
-                delta = prediction - data[idx+1]
+                delta = data[idx+1] - prediction
                 diff = res_datum.T.dot(delta)
-                self.Wout -= (alpha * diff) + (reg * self.Wout)
+                self.Wout += alpha * (diff - (reg * self.Wout))
         self.Wout = self.Wout.ravel() # take out when we are more than 1 dim
         print self.Wout
         print "finished training..."
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     burnin_length = 1000
     test_length = 3000
     error_length = 3000
-    reg = 1e-8
+    reg = 1e-5
     num_total_iters = 5
 
     train_data = data[:train_length]
@@ -126,7 +126,7 @@ if __name__ == "__main__":
             net = ESN(
                     in_size=1,
                     out_size=1,
-                    res_size=200,
+                    res_size=500,
                     a=1.0,
                     spectral_radius=0.9)
             print "finished creating net..."
