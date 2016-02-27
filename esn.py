@@ -31,23 +31,13 @@ class ESN:
         self.mlp["keep_prob"] = tf.placeholder(tf.float32)
         self.mlp["inputs"] = tf.placeholder(tf.float32, shape=[None, self.res_size + 1], name="X")
         self.mlp["outputs"] = tf.placeholder(tf.float32, shape=[None, self.out_size], name="Y")
-        xavier_ih = math.sqrt(6.0 / (self.res_size + self.in_size + 1 + mlp_hiddens))
-        xavier_ho = math.sqrt(6.0 / (mlp_hiddens + self.out_size))
-        xavier_bo = math.sqrt(6.0 / (self.out_size))
+        xavier_io = math.sqrt(6.0 / (self.res_size + self.in_size + 1 + self.out_size))
         # bias is added in beforehands, that's the +1
-        self.mlp["w_ih"] = tf.Variable(tf.random_uniform([self.res_size + 1, mlp_hiddens],
-            minval=-xavier_ih, maxval=xavier_ih, dtype=tf.float32))
-        self.mlp["w_ho"] = tf.Variable(tf.random_uniform([mlp_hiddens, self.out_size],
-            minval=-xavier_ho, maxval=xavier_ho, dtype=tf.float32))
-        self.mlp["b_ho"] = tf.Variable(tf.random_uniform([self.out_size],
-            minval=-xavier_bo, maxval=xavier_bo, dtype=tf.float32))
-        # el problemo
-        self.mlp["h1"] = tf.nn.relu(tf.matmul(self.mlp["inputs"], self.mlp["w_ih"]))
-        self.mlp["h1"] = tf.nn.dropout(self.mlp["h1"], self.mlp["keep_prob"])
-        self.mlp["out"] = tf.add(tf.matmul(self.mlp["h1"], self.mlp["w_ho"]), self.mlp["b_ho"])
-        # we are regressing! no cross-entropy for us!
-        self.mlp["loss"] = tf.reduce_sum(tf.pow(self.mlp["out"]-self.mlp["outputs"], 2))
-        self.mlp["train"] = tf.train.AdamOptimizer(0.001).minimize(self.mlp["loss"])
+        self.mlp["w_io"] = tf.Variable(tf.random_uniform([self.res_size + 1, self.out_size],
+            minval=-xavier_io, maxval=xavier_io, dtype=tf.float32))
+        self.mlp["out"] = tf.matmul(self.mlp["inputs"], self.mlp["w_io"])
+        self.mlp["loss"] = tf.nn.l2_loss(self.mlp["out"] - self.mlp["outputs"])
+        self.mlp["train"] = tf.train.AdamOptimizer(1e-7).minimize(self.mlp["loss"])
         init = tf.initialize_all_variables()
         self.tf_sess.run(init)
 
@@ -126,7 +116,6 @@ class ESN:
         return Y
 
     def get_spectral_radius(self):
-        assert isinstance(self.W, np.ndarray) # so no sparse matrices!
         return np.max(np.abs(npl.eig(self.W)[0]))
 
     spectral_radius = property(get_spectral_radius)
@@ -137,6 +126,8 @@ def mse(data, pred, error_len):
 
 if __name__ == "__main__":
     data = np.loadtxt('MackeyGlass_t17.txt')
+    data -= np.min(data) #positivify it
+    data /= np.max(data) #normalize
     train_length = 5000
     burnin_length = 1000
     test_length = 3000
@@ -159,13 +150,12 @@ if __name__ == "__main__":
                     out_size=1,
                     res_size=500,
                     a=1.0,
-                    spectral_radius=0.9)
+                    spectral_radius=1.3)
             print "finished creating net..."
             x = net.mlp_train(data=train_data, init_len=burnin_length)
             # out = net.mlp_predict(data[train_length], x, data, test_length, train_length)
             out = net.mlp_generate(data[train_length], x, test_length)
             print out
-            print out.shape
             plt.close()
             plt.plot(out.T)
             plt.plot(test_data)
