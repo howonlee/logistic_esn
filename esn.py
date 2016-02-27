@@ -85,10 +85,7 @@ class ESN:
             for start, end in zip(range(data_idx, len(data)-1, 128), range(data_idx+128, len(data)-1, 128)):
                 curr_res = np.zeros((127, 1+self.res_size))
                 for res_idx in xrange((end - 1) - start):
-                    new_u = np.atleast_2d(np.hstack((1, data[data_idx]))).T
-                    curr_x = (1-self.a) * curr_x +\
-                        self.a * self.nonlinear(np.dot(self.Win, new_u) +\
-                        self.W.dot(curr_x))
+                    curr_x = self.run_activation(curr_x, data[data_idx])
                     curr_res[res_idx, :] = np.vstack((np.atleast_2d(1), curr_x))[:, 0]
                     data_idx += 1
                 outs = np.atleast_2d(data[data_idx-127:data_idx]).T
