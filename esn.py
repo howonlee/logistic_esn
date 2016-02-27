@@ -24,7 +24,7 @@ class ESN:
         # relu:
         # self.nonlinear = lambda x: np.maximum(x, 0)
         self.W *= spectral_radius / self.spectral_radius
-        self.Wout = None #untrained as of yet
+        # no Wout: the MLP reads it out
 
     def setup_mlp(self):
         mlp_hiddens = 50 # should be much much less than res_size
@@ -58,9 +58,6 @@ class ESN:
         internal_signal = self.W.dot(prev_activation)
         return (1-self.a) * prev_activation + \
                self.a * self.nonlinear(np.dot(self.Win, biased_data) + internal_signal)
-
-    def get_output(self, activation, datum):
-        return np.atleast_2d(np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(datum), activation.T)).T))
 
     def mlp_train(self, data, init_len):
         # use only dropout
