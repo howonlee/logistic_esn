@@ -69,16 +69,13 @@ class ESN:
         # use only dropout
         num_epochs = 5
         print "begin training MLP..."
-        curr_x = np.zeros((self.res_size,1))
+        curr_x = npr.random(size=(self.res_size,1)) * 0.1
         for epoch in xrange(num_epochs):
             print epoch, " / ", num_epochs
             data_idx = 0
             # begin burnin
             for x_idx in xrange(init_len):
-                new_u = np.atleast_2d(np.hstack((1, data[data_idx]))).T
-                curr_x = (1-self.a) * curr_x +\
-                    self.a * self.nonlinear(np.dot(self.Win, new_u) +\
-                    self.W.dot(curr_x))
+                curr_x = self.run_activation(curr_x, data[data_idx])
                 data_idx += 1
             # finish burnin
             # begin actual training
