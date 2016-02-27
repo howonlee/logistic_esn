@@ -39,7 +39,7 @@ class ESN:
         self.mlp["loss"] = tf.nn.l2_loss(self.mlp["out"] - self.mlp["outputs"])
         self.mlp["global_step"] = tf.Variable(0, trainable=False)
         learning_rate = tf.train.exponential_decay(0.05, self.mlp["global_step"],
-                                                   1000, 0.96, staircase=True)
+                                                   1000, 0.99, staircase=True)
         self.mlp["train"] = tf.train.AdamOptimizer(learning_rate).minimize(self.mlp["loss"], global_step=self.mlp["global_step"])
         init = tf.initialize_all_variables()
         self.tf_sess.run(init)
