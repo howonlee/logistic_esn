@@ -53,9 +53,11 @@ class ESN:
         print "wout shape: ", self.Wout.shape
         print "finished training..."
 
-    def batch_sgd_train(self, res, data, reg, alpha=0.001):
+    def batch_sgd_train(self, res, data, reg, alpha=0.01):
         # prototype for online eval-trainer
-        self.Wout = npr.normal(size=(1 + self.in_size + self.res_size, self.out_size)) * 0.01
+        self.Wout = (npr.random(size=(1 + self.in_size + self.res_size, self.out_size)) - 0.5) * 2
+        # try that xavier init!
+        self.Wout *= (6 / math.sqrt(1 + self.in_size + self.res_size + self.out_size))
         print "begin training..."
         for epoch in xrange(1):
             print "epoch : ", epoch
@@ -66,6 +68,7 @@ class ESN:
                 diff = res_datum.T.dot(delta)
                 self.Wout -= (alpha * diff) + (reg * self.Wout)
         self.Wout = self.Wout.ravel() # take out when we are more than 1 dim
+        print self.Wout
         print "finished training..."
 
     def generate(self, init_u, init_x, test_len):
