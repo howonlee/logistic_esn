@@ -16,13 +16,12 @@ class ESN:
         self.a = a
         self.Win = (npr.rand(self.res_size,1 + self.in_size)-0.5) * 1
         # self.W = npr.rand(self.res_size, self.res_size) - 0.5
+
+        # * 2 to have it be in the range [-1, 1]
         self.W = (npr.rand(self.res_size, 1) - 0.5) * 2 * spectral_radius
         self.nonlinear = np.tanh
         # self.activation_function = self.run_esn_activation
         self.activation_function = self.run_thin_activation
-
-        # self.W *= spectral_radius / self.spectral_radius
-
         self.Wout = None #untrained as of yet
 
     def run_esn_activation(self, prev_activation, datum):
