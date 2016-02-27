@@ -59,14 +59,12 @@ class ESN:
         # try that xavier init!
         self.Wout *= (6 / math.sqrt(1 + self.in_size + self.res_size + self.out_size))
         print "begin training..."
-        for epoch in xrange(1):
-            print "epoch : ", epoch
-            for idx, res_datum in enumerate(res[:, :-1].T):
-                res_datum = np.atleast_2d(res_datum)
-                prediction = res_datum.dot(self.Wout)
-                delta = data[idx+1] - prediction
-                diff = res_datum.T.dot(delta)
-                self.Wout += alpha * (diff - (reg * self.Wout))
+        for idx, res_datum in enumerate(res[:, :-1].T):
+            res_datum = np.atleast_2d(res_datum)
+            prediction = res_datum.dot(self.Wout)
+            delta = data[idx+1] - prediction
+            diff = res_datum.T.dot(delta)
+            self.Wout += alpha * (diff - (reg * self.Wout))
         self.Wout = self.Wout.ravel() # take out when we are more than 1 dim
         print self.Wout
         print "finished training..."
