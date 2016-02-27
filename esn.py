@@ -37,7 +37,10 @@ class ESN:
             minval=-xavier_io, maxval=xavier_io, dtype=tf.float32))
         self.mlp["out"] = tf.matmul(self.mlp["inputs"], self.mlp["w_io"])
         self.mlp["loss"] = tf.nn.l2_loss(self.mlp["out"] - self.mlp["outputs"])
-        self.mlp["train"] = tf.train.AdamOptimizer(1e-3).minimize(self.mlp["loss"])
+        self.mlp["global_step"] = tf.Variable(0, trainable=False)
+        learning_rate = tf.train.exponential_decay(0.01, self.mlp["global_step"],
+                                                   100, 0.96, staircase=True)
+        self.mlp["train"] = tf.train.AdamOptimizer(learning_rate).minimize(self.mlp["loss"], global_step=self.mlp["global_step"])
         init = tf.initialize_all_variables()
         self.tf_sess.run(init)
 
@@ -148,7 +151,7 @@ if __name__ == "__main__":
             net = ESN(
                     in_size=1,
                     out_size=1,
-                    res_size=500,
+                    res_size=300,
                     a=0.3,
                     spectral_radius=1.25)
             print "finished creating net..."
