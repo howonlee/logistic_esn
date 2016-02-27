@@ -16,11 +16,42 @@ class ESN:
         self.a = a
         self.Win = (npr.rand(self.res_size,1 + self.in_size)-0.5) * 1
         self.W = npr.rand(self.res_size, self.res_size) - 0.5
-        # only for the diag experiment
-        self.W[np.invert(np.eye(*self.W.shape, dtype=np.bool))] = 0
         self.nonlinear = np.tanh
+        self.mlp = {}
+        self.tf_sess = tf.Session()
+        self.setup_mlp()
+        self.mlp_trained = False
+        # relu:
+        # self.nonlinear = lambda x: np.maximum(x, 0)
         self.W *= spectral_radius / self.spectral_radius
         self.Wout = None #untrained as of yet
+
+    def setup_mlp(self):
+        mlp_hiddens = 50 # should be much much less than res_size
+        self.mlp["keep_prob"] = tf.placeholder(tf.float32)
+        self.mlp["inputs"] = tf.placeholder(tf.float32, shape=[None, self.res_size + 1], name="X")
+        self.mlp["outputs"] = tf.placeholder(tf.float32, shape=[None, self.out_size], name="Y")
+        xavier_ih = math.sqrt(6.0 / (self.res_size + self.in_size + 1 + mlp_hiddens))
+        xavier_hh = math.sqrt(6.0 / (mlp_hiddens + mlp_hiddens))
+        xavier_ho = math.sqrt(6.0 / (mlp_hiddens + self.out_size))
+        # bias is added in beforehands, that's the +1
+        self.mlp["w_ih"] = tf.Variable(tf.random_uniform([self.res_size + 1, mlp_hiddens],
+            minval=-xavier_ih, maxval=xavier_ih, dtype=tf.float32))
+        self.mlp["w_hh"] = tf.Variable(tf.random_uniform([mlp_hiddens, mlp_hiddens],
+            minval=-xavier_hh, maxval=xavier_hh, dtype=tf.float32)) # not recurrent, this MLP! just deep.
+        self.mlp["w_ho"] = tf.Variable(tf.random_uniform([mlp_hiddens, self.out_size],
+            minval=-xavier_ho, maxval=xavier_ho, dtype=tf.float32))
+        # el problemo
+        self.mlp["h1"] = tf.nn.relu(tf.matmul(self.mlp["inputs"], self.mlp["w_ih"]))
+        self.mlp["h1"] = tf.nn.dropout(self.mlp["h1"], self.mlp["keep_prob"])
+        self.mlp["h2"] = tf.nn.relu(tf.matmul(self.mlp["h1"], self.mlp["w_hh"]))
+        self.mlp["h2"] = tf.nn.dropout(self.mlp["h2"], self.mlp["keep_prob"])
+        self.mlp["out"] = tf.matmul(self.mlp["h2"], self.mlp["w_ho"])
+        # we are regressing! no cross-entropy for us!
+        self.mlp["loss"] = tf.reduce_sum(tf.pow(self.mlp["out"]-self.mlp["outputs"], 2))
+        self.mlp["train"] = tf.train.AdamOptimizer(0.001).minimize(self.mlp["loss"])
+        init = tf.initialize_all_variables()
+        self.tf_sess.run(init)
 
     def run_activation(self, prev_activation, datum):
         biased_data = np.atleast_2d(np.hstack((1, datum))).T
@@ -31,72 +62,82 @@ class ESN:
     def get_output(self, activation, datum):
         return np.atleast_2d(np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(datum), activation.T)).T))
 
-    def run_reservoir(self, data, init_len):
-        train_len = len(data)
-        res = np.zeros((1+self.in_size+self.res_size, train_len-init_len))
-        x = np.zeros((self.res_size,1))
-        for t in range(len(data)):
-            if t % 1000 == 0:
-                print "running: ", t, " / ", len(data), datetime.datetime.now()
-            x = self.run_activation(x, data[t])
-            if t >= init_len:
-                res[:, t-init_len] = np.hstack((np.atleast_2d(1), np.atleast_2d(data[t]), x.T))[0,:]
-        return res, x
+    def mlp_train(self, data, init_len):
+        # use only dropout
+        num_epochs = 5
+        print "begin training MLP..."
+        curr_x = np.zeros((self.res_size,1))
+        for epoch in xrange(num_epochs):
+            print epoch, " / ", num_epochs
+            data_idx = 0
+            # begin burnin
+            for x_idx in xrange(init_len):
+                new_u = np.atleast_2d(np.hstack((1, data[data_idx]))).T
+                curr_x = (1-self.a) * curr_x +\
+                    self.a * self.nonlinear(np.dot(self.Win, new_u) +\
+                    self.W.dot(curr_x))
+                data_idx += 1
+            # finish burnin
+            # begin actual training
+            for start, end in zip(range(data_idx, len(data)-1, 128), range(data_idx+128, len(data)-1, 128)):
+                curr_res = np.zeros((127, 1+self.res_size))
+                for res_idx in xrange((end - 1) - start):
+                    new_u = np.atleast_2d(np.hstack((1, data[data_idx]))).T
+                    curr_x = (1-self.a) * curr_x +\
+                        self.a * self.nonlinear(np.dot(self.Win, new_u) +\
+                        self.W.dot(curr_x))
+                    curr_res[res_idx, :] = np.vstack((np.atleast_2d(1), curr_x))[:, 0]
+                    data_idx += 1
+                outs = np.atleast_2d(data[data_idx-127:data_idx]).T
+                self.tf_sess.run(self.mlp["train"],
+                        feed_dict={
+                            self.mlp["inputs"]: curr_res,
+                            self.mlp["outputs"]: outs,
+                            self.mlp["keep_prob"]: 0.5
+                            })
+            # finish actual training
+        self.mlp_trained = True
+        print "finished training MLP..."
+        return curr_x
 
-    def train(self, res, data, reg):
-        # ridge regression, with analytic solution
-        print "begin training..."
-        print data.shape
-        print res.shape
-        self.Wout = np.dot(np.dot(data.T, res.T), npl.inv(np.dot(res, res.T) +\
-            reg * np.eye(1 + self.in_size + self.res_size)))
-        print "wout shape: ", self.Wout.shape
-        print "finished training..."
-
-    def batch_sgd_train(self, res, data, reg, alpha=0.001):
-        # prototype for online eval-trainer
-        self.Wout = (npr.random(size=(1 + self.in_size + self.res_size, self.out_size)) - 0.5) * 2
-        # try that xavier init!
-        self.Wout *= (6 / math.sqrt(1 + self.in_size + self.res_size + self.out_size))
-        print "begin training..."
-        self.momentum = np.zeros_like(self.Wout)
-        for idx, res_datum in enumerate(res[:, :-1].T):
-            res_datum = np.atleast_2d(res_datum)
-            prediction = res_datum.dot(self.Wout)
-            delta = data[idx+1] - prediction
-            diff = res_datum.T.dot(delta)
-            self.momentum += 0.01 * diff
-            self.momentum *= 0.99
-            self.Wout += alpha * self.momentum - (reg * self.Wout) #(diff - (reg * self.Wout))
-        self.Wout = self.Wout.ravel() # take out when we are more than 1 dim
-        print self.Wout
-        print "finished training..."
-
-    def generate(self, init_u, init_x, test_len):
+    def mlp_generate(self, init_u, init_x, test_len):
+        assert self.mlp_trained
         u, x = init_u, init_x
         Y = np.zeros((self.out_size, test_len))
         for t in xrange(test_len):
             if t % 1000 == 0:
                 print "generating: ", t, " / ", test_len, datetime.datetime.now()
             x = self.run_activation(x, u)
-            y = self.get_output(x, u)
-            Y[:, t] = y[:, 0]
-            u = y[:, 0]
+            curr_res = np.vstack((1, x)).T
+            y = np.atleast_2d(self.mlp["out"].eval(session=self.tf_sess,
+                              feed_dict={
+                                  self.mlp["inputs"]: curr_res,
+                                  self.mlp["outputs"]: np.zeros((1, self.out_size)),
+                                  self.mlp["keep_prob"]: 1.0}))
+            Y[:, t] = y.T[:, 0]
+            u = y.T[:, 0]
         return Y
 
-    def predict(self, init_u, init_x, data, test_len, train_len):
+    def mlp_predict(self, init_u, init_x, data, test_len, train_len):
+        assert self.mlp_trained
         u, x = init_u, init_x
         Y = np.zeros((self.out_size, test_len))
         for t in xrange(test_len):
             if t % 1000 == 0:
                 print "generating: ", t, " / ", test_len, datetime.datetime.now()
             x = self.run_activation(x, u)
-            y = self.get_output(x, u)
-            Y[:, t] = y[:, 0]
+            curr_res = np.vstack((1, x)).T
+            y = np.atleast_2d(self.mlp["out"].eval(session=self.tf_sess,
+                              feed_dict={
+                                  self.mlp["inputs"]: curr_res,
+                                  self.mlp["outputs"]: np.zeros((1, self.out_size)),
+                                  self.mlp["keep_prob"]: 1.0}))
+            Y[:, t] = y.T[:, 0]
             u = data[train_len + t + 1]
         return Y
 
     def get_spectral_radius(self):
+        assert isinstance(self.W, np.ndarray) # so no sparse matrices!
         return np.max(np.abs(npl.eig(self.W)[0]))
 
     spectral_radius = property(get_spectral_radius)
@@ -104,13 +145,13 @@ class ESN:
 def mse(data, pred, error_len):
     return np.sum(np.square(data.ravel()[:error_len] - pred.ravel()[:error_len])) / error_len
 
+
 if __name__ == "__main__":
     data = np.loadtxt('MackeyGlass_t17.txt')
     train_length = 5000
     burnin_length = 1000
     test_length = 3000
     error_length = 3000
-    reg = 1e-5
     num_total_iters = 5
 
     train_data = data[:train_length]
@@ -127,17 +168,16 @@ if __name__ == "__main__":
             net = ESN(
                     in_size=1,
                     out_size=1,
-                    res_size=1000,
+                    res_size=500,
                     a=1.0,
-                    spectral_radius=0.9)
+                    spectral_radius=1.1)
             print "finished creating net..."
-            res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
-            # net.train(res=res, data=train_target, reg=reg)
-            net.batch_sgd_train(res=res, data=train_target, reg=reg)
-            out = net.generate(data[train_length], x, test_length)
-            # out = net.predict(data[train_length], x, data, test_length, train_length)
+            x = net.mlp_train(data=train_data, init_len=burnin_length)
+            # out = net.mlp_predict(data[train_length], x, data, test_length, train_length)
+            out = net.mlp_generate(data[train_length], x, test_length)
+            print out
+            print out.shape
             plt.close()
-            print out.T
             plt.plot(out.T)
             plt.plot(test_data)
             plt.show()
