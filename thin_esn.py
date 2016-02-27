@@ -52,10 +52,15 @@ class ESN:
     def train(self, res, data, reg):
         # ridge regression
         print "begin training..."
-        print data.shape
-        print res.shape
-        self.Wout = np.dot(np.dot(data.T, res.T), npl.inv(np.dot(res, res.T) +\
-            reg * np.eye(1 + self.in_size + self.res_size)))
+        print "first dot shape: ", np.dot(data.T, res.T).shape
+        print "second dot shape: ", np.dot(res, res.T).shape
+        self.Wout = np.dot(
+                np.dot(data.T, res.T),
+                npl.inv(
+                    np.dot(res, res.T) +\
+                    reg * np.eye(1 + self.in_size + self.res_size)
+                )
+            )
         print "finished training..."
 
     def generate(self, init_u, init_x, test_len):
