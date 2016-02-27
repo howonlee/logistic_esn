@@ -20,6 +20,12 @@ class ESN:
         self.W *= spectral_radius / self.spectral_radius
         self.Wout = None #untrained as of yet
 
+    def run_esn_activation(self, prev_activation, datum):
+        biased_data = np.atleast_2d(np.hstack((1, datum))).T
+        internal_signal = self.W.dot(prev_activation)
+        return (1-self.a) * prev_activation + \
+               self.a * self.nonlinear(np.dot(self.Win, biased_data) + internal_signal)
+
     def run_reservoir(self, data, init_len):
         train_len = len(data)
         res = np.zeros((1+self.in_size+self.res_size, train_len-init_len))
@@ -28,11 +34,7 @@ class ESN:
             if t % 1000 == 0:
                 print "running: ", t, " / ", len(data), datetime.datetime.now()
             u = data[t]
-            new_u = np.atleast_2d(np.hstack((1, u))).T
-            internal_signal = self.W.dot(x)
-            x = (1-self.a) * x +\
-                self.a * self.nonlinear(np.dot(self.Win, new_u) +\
-                internal_signal)
+            x = self.run_esn_activation(x, u)
             if t >= init_len:
                 res[:, t-init_len] = np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T))[0,:]
         return res, x
@@ -52,11 +54,7 @@ class ESN:
         for t in xrange(test_len):
             if t % 1000 == 0:
                 print "generating: ", t, " / ", test_len, datetime.datetime.now()
-            new_u = np.atleast_2d(np.hstack((1, u))).T
-            internal_signal = self.W.dot(x)
-            x = (1-self.a) * x +\
-                self.a * self.nonlinear(np.dot(self.Win, new_u) +\
-                internal_signal)
+            x = self.run_esn_activation(x, u)
             y = np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T)).T)
             y = np.atleast_2d(y)
             Y[:, t] = y[:, 0]
@@ -69,11 +67,7 @@ class ESN:
         for t in xrange(test_len):
             if t % 1000 == 0:
                 print "generating: ", t, " / ", test_len, datetime.datetime.now()
-            new_u = np.atleast_2d(np.hstack((1, u))).T
-            internal_signal = self.W.dot(x)
-            x = (1-self.a) * x +\
-                self.a * self.nonlinear(np.dot(self.Win, new_u) +\
-                internal_signal)
+            x = self.run_esn_activation(x, u)
             y = np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T)).T)
             y = np.atleast_2d(y)
             Y[:, t] = y[:, 0]
@@ -114,8 +108,7 @@ if __name__ == "__main__":
                     out_size=1,
                     res_size=500,
                     a=1.0,
-                    spectral_radius=1.1,
-                    w_method="uniform")
+                    spectral_radius=1.1)
             print "finished creating net..."
             res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
             net.train(res=res, data=train_target, reg=reg)
