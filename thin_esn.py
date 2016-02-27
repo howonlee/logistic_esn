@@ -15,14 +15,23 @@ class ESN:
         self.res_size = res_size
         self.a = a
         self.Win = (npr.rand(self.res_size,1 + self.in_size)-0.5) * 1
-        self.W = npr.rand(self.res_size, self.res_size) - 0.5
+        # self.W = npr.rand(self.res_size, self.res_size) - 0.5
+        self.W = npr.rand(self.res_size) - 0.5
         self.nonlinear = np.tanh
+        # self.activation_function = self.run_esn_activation
+        self.activation_function = self.run_thin_activation
         self.W *= spectral_radius / self.spectral_radius
         self.Wout = None #untrained as of yet
 
     def run_esn_activation(self, prev_activation, datum):
         biased_data = np.atleast_2d(np.hstack((1, datum))).T
         internal_signal = self.W.dot(prev_activation)
+        return (1-self.a) * prev_activation + \
+               self.a * self.nonlinear(np.dot(self.Win, biased_data) + internal_signal)
+
+    def run_thin_activation(self, prev_activation, datum):
+        biased_data = np.atleast_2d(np.hstack((1, datum))).T
+        internal_signal = np.multiply(self.W, prev_activation)
         return (1-self.a) * prev_activation + \
                self.a * self.nonlinear(np.dot(self.Win, biased_data) + internal_signal)
 
@@ -34,7 +43,7 @@ class ESN:
             if t % 1000 == 0:
                 print "running: ", t, " / ", len(data), datetime.datetime.now()
             u = data[t]
-            x = self.run_esn_activation(x, u)
+            x = self.activation_function(x, u)
             if t >= init_len:
                 res[:, t-init_len] = np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T))[0,:]
         return res, x
@@ -54,7 +63,7 @@ class ESN:
         for t in xrange(test_len):
             if t % 1000 == 0:
                 print "generating: ", t, " / ", test_len, datetime.datetime.now()
-            x = self.run_esn_activation(x, u)
+            x = self.activation_function(x, u)
             y = np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T)).T)
             y = np.atleast_2d(y)
             Y[:, t] = y[:, 0]
@@ -67,7 +76,7 @@ class ESN:
         for t in xrange(test_len):
             if t % 1000 == 0:
                 print "generating: ", t, " / ", test_len, datetime.datetime.now()
-            x = self.run_esn_activation(x, u)
+            x = self.activation_function(x, u)
             y = np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T)).T)
             y = np.atleast_2d(y)
             Y[:, t] = y[:, 0]
