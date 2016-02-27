@@ -27,7 +27,6 @@ class ESN:
         # no Wout: the MLP reads it out
 
     def setup_mlp(self):
-        mlp_hiddens = 300 # should be much much less than res_size
         self.mlp["keep_prob"] = tf.placeholder(tf.float32)
         self.mlp["inputs"] = tf.placeholder(tf.float32, shape=[None, self.res_size + 1], name="X")
         self.mlp["inputs"] = tf.nn.dropout(self.mlp["inputs"], self.mlp["keep_prob"])
@@ -73,7 +72,7 @@ class ESN:
                         feed_dict={
                             self.mlp["inputs"]: curr_res,
                             self.mlp["outputs"]: outs,
-                            self.mlp["keep_prob"]: 0.5
+                            self.mlp["keep_prob"]: 0.9
                             })
             # finish actual training
         self.mlp_trained = True
@@ -150,7 +149,7 @@ if __name__ == "__main__":
                     in_size=1,
                     out_size=1,
                     res_size=500,
-                    a=1.0,
+                    a=0.3,
                     spectral_radius=1.25)
             print "finished creating net..."
             x = net.mlp_train(data=train_data, init_len=burnin_length)
