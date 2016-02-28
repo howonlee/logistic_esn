@@ -9,8 +9,9 @@ import math
 import tensorflow as tf
 
 class ESN:
-    def __init__(self, in_size, out_size, res_size, a, spectral_radius):
+    def __init__(self, in_size, out_size, res_size, reduction_size, a, spectral_radius):
         self.in_size = in_size
+        self.reduction_size = reduction_size
         self.out_size = out_size
         self.res_size = res_size
         self.a = a
@@ -19,6 +20,7 @@ class ESN:
 
         # * 2 to have it be in the range [-1, 1]
         self.W = (npr.rand(self.res_size, 1) - 0.5) * 2 * spectral_radius
+        self.W2 = npr.rand(self.res_size, self.reduction_size) # pay your taxes, kids
         self.nonlinear = np.tanh
         # self.activation_function = self.run_esn_activation
         self.activation_function = self.run_thin_activation
@@ -122,6 +124,7 @@ if __name__ == "__main__":
                     in_size=1,
                     out_size=1,
                     res_size=2000,
+                    reduction_size=10,
                     a=1.0,
                     spectral_radius=1.1)
             print "finished creating net..."
