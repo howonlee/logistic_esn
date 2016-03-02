@@ -51,6 +51,9 @@ class ESN:
                 res[:, t-init_len] = np.hstack((np.atleast_2d(1), np.atleast_2d(u), x.T))[0,:]
         return res, x
 
+    def run_thin(self, data, init_len):
+        pass
+
     def train(self, res, data, reg):
         # ridge regression
         print "begin training..."
@@ -64,6 +67,9 @@ class ESN:
                 )
             )
         print "finished training..."
+
+    def train_thin(self, res, data, reg):
+        pass
 
     def generate(self, init_u, init_x, test_len):
         u, x = init_u, init_x
