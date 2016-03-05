@@ -52,7 +52,7 @@ class ESN:
         return res, x
 
     def run_thin(self, data, init_len):
-        pass
+        return res, x
 
     def train(self, res, data, reg):
         # ridge regression
@@ -67,9 +67,6 @@ class ESN:
                 )
             )
         print "finished training..."
-
-    def train_thin(self, res, data, reg):
-        pass
 
     def generate(self, init_u, init_x, test_len):
         u, x = init_u, init_x
