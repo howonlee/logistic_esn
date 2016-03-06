@@ -19,6 +19,8 @@ class ESN:
         # * 2 to have it be in the range [-1, 1]
         self.W = (npr.rand(self.res_size, 1) - 0.5) * 2 * spectral_radius
         self.W2 = (npr.rand(self.reduction_size, self.res_size) - 0.5) * 2 # pay your taxes, kids
+        self.W2 /= np.max(np.abs(npl.eig(self.W2)[0]))
+        self.W2 *= spectral_radius
         self.nonlinear = np.tanh
         # self.activation_function = self.run_esn_activation
         self.activation_function = self.run_thin_activation
@@ -164,17 +166,17 @@ if __name__ == "__main__":
             net = ESN(
                     in_size=1,
                     out_size=1,
-                    res_size=2000,
-                    reduction_size=500,
+                    res_size=40000,
+                    reduction_size=400,
                     a=1.0,
                     spectral_radius=0.9)
             print "finished creating net..."
-            res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
-            # res, x = net.run_thin(data=train_data, init_len=burnin_length)
-            net.train(res=res, data=train_target, reg=reg)
-            # net.train_thin(res=res, data=train_target, reg=reg)
-            out = net.generate(data[train_length], x, test_length)
-            # out = net.generate_thin(data[train_length], x, test_length)
+            # res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
+            res, x = net.run_thin(data=train_data, init_len=burnin_length)
+            # net.train(res=res, data=train_target, reg=reg)
+            net.train_thin(res=res, data=train_target, reg=reg)
+            # out = net.generate(data[train_length], x, test_length)
+            out = net.generate_thin(data[train_length], x, test_length)
             print out
             print out.shape
             # out = net.predict(data[train_length], x, data, test_length, train_length)
