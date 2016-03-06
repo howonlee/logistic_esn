@@ -18,7 +18,7 @@ class ESN:
         self.Win = (npr.rand(self.res_size,1 + self.in_size)-0.5) * 1
         # * 2 to have it be in the range [-1, 1]
         self.W = (npr.rand(self.res_size, 1) - 0.5) * 2 * spectral_radius
-        self.W2 = npr.rand(self.res_size, self.reduction_size) # pay your taxes, kids
+        self.W2 = (npr.rand(self.reduction_size, self.res_size) - 0.5) * 2 # pay your taxes, kids
         self.nonlinear = np.tanh
         # self.activation_function = self.run_esn_activation
         self.activation_function = self.run_thin_activation
@@ -59,7 +59,7 @@ class ESN:
             u = data[t]
             x = self.activation_function(x, u)
             # and then do the reduction, too, here
-            x2 = something
+            x2 = self.W2.dot(x)
             if t >= init_len:
                 res[:, t-init_len] = np.hstack((np.atleast_2d(1), np.atleast_2d(u), x2.T))[0,:]
         return res, x
@@ -78,6 +78,20 @@ class ESN:
             )
         print "finished training..."
 
+    def train_thin(self, res, data, reg):
+        # ridge regression
+        print "begin training..."
+        print "first dot shape: ", np.dot(data.T, res.T).shape
+        print "second dot shape: ", np.dot(res, res.T).shape
+        self.Wout = np.dot(
+                np.dot(data.T, res.T),
+                npl.inv(
+                    np.dot(res, res.T) +\
+                    reg * np.eye(1 + self.in_size + self.reduction_size)
+                )
+            )
+        print "finished training..."
+
     def generate(self, init_u, init_x, test_len):
         u, x = init_u, init_x
         Y = np.zeros((self.out_size, test_len))
@@ -92,7 +106,18 @@ class ESN:
         return Y
 
     def generate_thin(self, init_u, init_x, test_len):
-        pass
+        u, x = init_u, init_x
+        Y = np.zeros((self.out_size, test_len))
+        for t in xrange(test_len):
+            if t % 1000 == 0:
+                print "generating: ", t, " / ", test_len, datetime.datetime.now()
+            x = self.activation_function(x, u)
+            x2 = self.W2.dot(x)
+            y = np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(u), x2.T)).T)
+            y = np.atleast_2d(y)
+            Y[:, t] = y[:, 0]
+            u = y[:, 0]
+        return Y
 
     def predict(self, init_u, init_x, data, test_len, train_len):
         u, x = init_u, init_x
@@ -140,15 +165,16 @@ if __name__ == "__main__":
                     in_size=1,
                     out_size=1,
                     res_size=2000,
-                    reduction_size=10,
+                    reduction_size=500,
                     a=1.0,
-                    spectral_radius=1.1)
+                    spectral_radius=0.9)
             print "finished creating net..."
-            # res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
-            res, x = net.run_thin(data=train_data, init_len=burnin_length)
+            res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
+            # res, x = net.run_thin(data=train_data, init_len=burnin_length)
             net.train(res=res, data=train_target, reg=reg)
-            # out = net.generate(data[train_length], x, test_length)
-            out = net.generate_thin(data[train_length], x, test_length)
+            # net.train_thin(res=res, data=train_target, reg=reg)
+            out = net.generate(data[train_length], x, test_length)
+            # out = net.generate_thin(data[train_length], x, test_length)
             print out
             print out.shape
             # out = net.predict(data[train_length], x, data, test_length, train_length)
