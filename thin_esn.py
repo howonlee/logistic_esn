@@ -18,8 +18,8 @@ class ESN:
         self.Win = (npr.rand(self.res_size,1 + self.in_size)-0.5) * 1
         # * 2 to have it be in the range [-1, 1]
         self.W = (npr.rand(self.res_size, 1) - 0.5) * 2 * spectral_radius
-        self.W2 = (npr.rand(self.reduction_size, self.res_size) - 0.5) * 2 # pay your taxes, kids
-        self.W2 /= np.max(np.abs(npl.eig(self.W2)[0]))
+        self.W2 = npr.normal(size=(self.reduction_size, self.res_size)) # pay your taxes, kids
+        self.W2 /= np.sqrt(self.res_size)
         self.W2 *= spectral_radius
         self.nonlinear = np.tanh
         # self.activation_function = self.run_esn_activation
@@ -166,7 +166,7 @@ if __name__ == "__main__":
             net = ESN(
                     in_size=1,
                     out_size=1,
-                    res_size=40000,
+                    res_size=10000,
                     reduction_size=400,
                     a=1.0,
                     spectral_radius=0.9)
