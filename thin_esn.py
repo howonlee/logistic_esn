@@ -134,6 +134,20 @@ class ESN:
             u = data[train_len + t + 1]
         return Y
 
+    def predict_thin(self, init_u, init_x, data, test_len, train_len):
+        u, x = init_u, init_x
+        Y = np.zeros((self.out_size, test_len))
+        for t in xrange(test_len):
+            if t % 1000 == 0:
+                print "generating: ", t, " / ", test_len, datetime.datetime.now()
+            x = self.activation_function(x, u)
+            x2 = self.W2.dot(x)
+            y = np.dot(self.Wout, np.hstack((np.atleast_2d(1), np.atleast_2d(u), x2.T)).T)
+            y = np.atleast_2d(y)
+            Y[:, t] = y[:, 0]
+            u = data[train_len + t + 1]
+        return Y
+
     def get_spectral_radius(self):
         assert isinstance(self.W, np.ndarray) # so no sparse matrices!
         return np.max(np.abs(npl.eig(self.W)[0]))
@@ -147,8 +161,8 @@ if __name__ == "__main__":
     data = np.loadtxt('MackeyGlass_t17.txt')
     train_length = 5000
     burnin_length = 1000
-    test_length = 3000
-    error_length = 3000
+    test_length = 300
+    error_length = 300
     num_total_iters = 5
     reg = 1e-7
 
@@ -166,20 +180,20 @@ if __name__ == "__main__":
             net = ESN(
                     in_size=1,
                     out_size=1,
-                    res_size=10000,
-                    reduction_size=400,
+                    res_size=1000,
+                    reduction_size=1000,
                     a=1.0,
-                    spectral_radius=0.9)
+                    spectral_radius=1.25)
             print "finished creating net..."
             # res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
             res, x = net.run_thin(data=train_data, init_len=burnin_length)
             # net.train(res=res, data=train_target, reg=reg)
             net.train_thin(res=res, data=train_target, reg=reg)
             # out = net.generate(data[train_length], x, test_length)
-            out = net.generate_thin(data[train_length], x, test_length)
+            # out = net.generate_thin(data[train_length], x, test_length)
+            out = net.predict_thin(data[train_length], x, data, test_length, train_length)
             print out
             print out.shape
-            # out = net.predict(data[train_length], x, data, test_length, train_length)
             plt.close()
             plt.plot(out.T)
             plt.plot(test_data)
