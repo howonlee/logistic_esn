@@ -7,6 +7,8 @@ import scipy.stats as sci_st
 import datetime
 import math
 import tensorflow as tf
+import sklearn
+import sklearn.linear_model
 
 class ESN:
     def __init__(self, in_size, out_size, res_size, reduction_size, a, spectral_radius):
@@ -83,8 +85,6 @@ class ESN:
     def train_thin(self, res, data, reg):
         # ridge regression
         print "begin training..."
-        print "first dot shape: ", np.dot(data.T, res.T).shape
-        print "second dot shape: ", np.dot(res, res.T).shape
         self.Wout = np.dot(
                 np.dot(data.T, res.T),
                 npl.inv(
@@ -92,6 +92,13 @@ class ESN:
                     reg * np.eye(1 + self.in_size + self.reduction_size)
                 )
             )
+        print "finished training..."
+
+    def train_sgd(self, res, data):
+        print "begin training sgd..."
+        regressor = sklearn.linear_model.SGDRegressor(n_iter=2000)
+        regressor.fit(res.T, data)
+        self.Wout = regressor.coef_
         print "finished training..."
 
     def generate(self, init_u, init_x, test_len):
@@ -189,9 +196,10 @@ if __name__ == "__main__":
             res, x = net.run_thin(data=train_data, init_len=burnin_length)
             # net.train(res=res, data=train_target, reg=reg)
             net.train_thin(res=res, data=train_target, reg=reg)
+            # net.train_sgd(res=res, data=train_target)
             # out = net.generate(data[train_length], x, test_length)
-            # out = net.generate_thin(data[train_length], x, test_length)
-            out = net.predict_thin(data[train_length], x, data, test_length, train_length)
+            out = net.generate_thin(data[train_length], x, test_length)
+            # out = net.predict_thin(data[train_length], x, data, test_length, train_length)
             print out
             print out.shape
             plt.close()
