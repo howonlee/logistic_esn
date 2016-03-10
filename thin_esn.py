@@ -95,7 +95,7 @@ class ESN:
 
     def train_sgd(self, res, data):
         print "begin training sgd..."
-        regressor = sklearn.linear_model.SGDRegressor(alpha=1e-5, n_iter=10000)
+        regressor = sklearn.linear_model.SGDRegressor(alpha=1e-7, n_iter=10000, shuffle=False, verbose=1)
         regressor.fit(res.T, data)
         self.Wout = regressor.coef_
         print "finished training..."
