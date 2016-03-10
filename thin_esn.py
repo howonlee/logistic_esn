@@ -100,6 +100,13 @@ class ESN:
         self.Wout = regressor.coef_
         print "finished training..."
 
+    def train_sgd_ridge(self, res, data):
+        print "begin training sgd ridge..."
+        regressor = sklearn.linear_model.Ridge(alpha=1e-3, solver='svd')
+        regressor.fit(res.T, data)
+        self.Wout = regressor.coef_
+        print "finished training..."
+
     def generate(self, init_u, init_x, test_len):
         u, x = init_u, init_x
         Y = np.zeros((self.out_size, test_len))
@@ -196,6 +203,7 @@ if __name__ == "__main__":
             print np.max(np.abs(npl.eig(cov)[0]))
             # net.train_thin(res=res, data=train_target, reg=reg)
             net.train_sgd(res=res, data=train_target)
+            # net.train_sgd_ridge(res=res, data=train_target)
             # out = net.generate(data[train_length], x, test_length)
             out = net.generate_thin(data[train_length], x, test_length)
             # out = net.predict_thin(data[train_length], x, data, test_length, train_length)
