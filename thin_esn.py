@@ -95,7 +95,7 @@ class ESN:
 
     def train_sgd(self, res, data):
         print "begin training sgd..."
-        regressor = sklearn.linear_model.SGDRegressor(alpha=1e-7, n_iter=10000, shuffle=False, verbose=1)
+        regressor = sklearn.linear_model.SGDRegressor(alpha=1e-7, n_iter=4000, shuffle=False, verbose=1, eta0=0.00001, learning_rate='constant')
         regressor.fit(res.T, data)
         self.Wout = regressor.coef_
         print "finished training..."
@@ -193,10 +193,10 @@ if __name__ == "__main__":
             net = ESN(
                     in_size=1,
                     out_size=1,
-                    res_size=1000,
-                    reduction_size=1000,
+                    res_size=2000,
+                    reduction_size=2000,
                     a=1.0,
-                    spectral_radius=0.9)
+                    spectral_radius=1.1)
             print "finished creating net..."
             res, x = net.run_thin(data=train_data, init_len=burnin_length)
             cov = np.cov(res)
