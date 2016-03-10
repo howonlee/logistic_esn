@@ -98,17 +98,21 @@ class ESN:
 
     def train_sgd(self, res, data):
         print "begin training sgd..."
-        regressor = sklearn.linear_model.SGDRegressor(alpha=1e-7, n_iter=4000, shuffle=False, verbose=1, eta0=0.00001, learning_rate='constant')
+        # regressor = sklearn.linear_model.SGDRegressor(alpha=1e-7, n_iter=4000, shuffle=False, verbose=1, eta0=0.00001, learning_rate='constant')
+        regressor = sklearn.linear_model.SGDRegressor(alpha=1e-5, n_iter=10000, shuffle=False, verbose=1)
         regressor.fit(res.T, data)
         self.Wout = regressor.coef_
         print "finished training..."
 
     def train_sgd_ridge(self, res, data):
         print "begin training sgd ridge..."
-        regressor = sklearn.linear_model.Ridge(alpha=1e-3, solver='svd')
+        regressor = sklearn.linear_model.RidgeCV()
         regressor.fit(res.T, data)
         self.Wout = regressor.coef_
         print "finished training..."
+
+    def train_rls(self, res, data):
+        pass
 
     def generate(self, init_u, init_x, test_len):
         u, x = init_u, init_x
@@ -199,12 +203,14 @@ if __name__ == "__main__":
                     res_size=1000,
                     reduction_size=1000,
                     a=1.0,
-                    spectral_radius=1.1)
+                    spectral_radius=0.9)
             print "finished creating net..."
             # res, x = net.run_thin(data=train_data, init_len=burnin_length)
             res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
-            cov = np.cov(res)
-            print np.max(np.abs(npl.eig(cov)[0]))
+            outer = np.cov(res)
+            eigs = npl.eig(outer)[0]
+            print np.max(np.abs(eigs))
+            print np.min(np.abs(eigs))
             # net.train_thin(res=res, data=train_target, reg=reg)
             net.train_sgd(res=res, data=train_target)
             # net.train_sgd_ridge(res=res, data=train_target)
