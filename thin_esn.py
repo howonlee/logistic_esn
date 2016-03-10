@@ -83,7 +83,6 @@ class ESN:
         print "finished training..."
 
     def train_thin(self, res, data, reg):
-        # ridge regression
         print "begin training..."
         self.Wout = np.dot(
                 np.dot(data.T, res.T),
@@ -96,7 +95,7 @@ class ESN:
 
     def train_sgd(self, res, data):
         print "begin training sgd..."
-        regressor = sklearn.linear_model.Ridge(alpha=0.01, solver='svd')
+        regressor = sklearn.linear_model.SGDRegressor(alpha=1e-5, n_iter=10000)
         regressor.fit(res.T, data)
         self.Wout = regressor.coef_
         print "finished training..."
@@ -192,13 +191,11 @@ if __name__ == "__main__":
                     a=1.0,
                     spectral_radius=0.9)
             print "finished creating net..."
-            # res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
             res, x = net.run_thin(data=train_data, init_len=burnin_length)
             cov = np.cov(res)
             print np.max(np.abs(npl.eig(cov)[0]))
-            # net.train(res=res, data=train_target, reg=reg)
-            net.train_thin(res=res, data=train_target, reg=reg)
-            # net.train_sgd(res=res, data=train_target)
+            # net.train_thin(res=res, data=train_target, reg=reg)
+            net.train_sgd(res=res, data=train_target)
             # out = net.generate(data[train_length], x, test_length)
             out = net.generate_thin(data[train_length], x, test_length)
             # out = net.predict_thin(data[train_length], x, data, test_length, train_length)
