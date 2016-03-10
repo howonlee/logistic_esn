@@ -111,7 +111,9 @@ class ESN:
         self.Wout = regressor.coef_
         print "finished training..."
 
-    def train_rls(self, res, data):
+    def train_sgd_momentum(self, res, data):
+        self.Wout = 0.1 * np.random(size=(self.out_size, self.res_size))
+        # use tf
         pass
 
     def generate(self, init_u, init_x, test_len):
