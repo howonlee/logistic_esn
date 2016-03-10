@@ -19,13 +19,16 @@ class ESN:
         self.a = a
         self.Win = (npr.rand(self.res_size,1 + self.in_size)-0.5) * 1
         # * 2 to have it be in the range [-1, 1]
-        self.W = (npr.rand(self.res_size, 1) - 0.5) * 2 * spectral_radius
+        # self.W = (npr.rand(self.res_size, 1) - 0.5) * 2 * spectral_radius
+        self.W = (npr.rand(self.res_size, self.res_size) - 0.5) * 2
+        self.W /= np.sqrt(self.res_size)
+        self.W *= spectral_radius
         self.W2 = npr.normal(size=(self.reduction_size, self.res_size)) # pay your taxes, kids
         self.W2 /= np.sqrt(self.res_size)
         self.W2 *= spectral_radius
         self.nonlinear = np.tanh
-        # self.activation_function = self.run_esn_activation
-        self.activation_function = self.run_thin_activation
+        self.activation_function = self.run_esn_activation
+        # self.activation_function = self.run_thin_activation
         self.Wout = None #untrained as of yet
 
     def run_esn_activation(self, prev_activation, datum):
@@ -193,19 +196,20 @@ if __name__ == "__main__":
             net = ESN(
                     in_size=1,
                     out_size=1,
-                    res_size=2000,
-                    reduction_size=2000,
+                    res_size=1000,
+                    reduction_size=1000,
                     a=1.0,
                     spectral_radius=1.1)
             print "finished creating net..."
-            res, x = net.run_thin(data=train_data, init_len=burnin_length)
+            # res, x = net.run_thin(data=train_data, init_len=burnin_length)
+            res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
             cov = np.cov(res)
             print np.max(np.abs(npl.eig(cov)[0]))
             # net.train_thin(res=res, data=train_target, reg=reg)
             net.train_sgd(res=res, data=train_target)
             # net.train_sgd_ridge(res=res, data=train_target)
-            # out = net.generate(data[train_length], x, test_length)
-            out = net.generate_thin(data[train_length], x, test_length)
+            out = net.generate(data[train_length], x, test_length)
+            # out = net.generate_thin(data[train_length], x, test_length)
             # out = net.predict_thin(data[train_length], x, data, test_length, train_length)
             plt.close()
             plt.plot(out.T)
