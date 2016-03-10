@@ -96,7 +96,7 @@ class ESN:
 
     def train_sgd(self, res, data):
         print "begin training sgd..."
-        regressor = sklearn.linear_model.SGDRegressor(n_iter=2000)
+        regressor = sklearn.linear_model.Ridge(alpha=0.01, solver='svd')
         regressor.fit(res.T, data)
         self.Wout = regressor.coef_
         print "finished training..."
@@ -190,18 +190,18 @@ if __name__ == "__main__":
                     res_size=1000,
                     reduction_size=1000,
                     a=1.0,
-                    spectral_radius=1.25)
+                    spectral_radius=0.9)
             print "finished creating net..."
             # res, x = net.run_reservoir(data=train_data, init_len=burnin_length)
             res, x = net.run_thin(data=train_data, init_len=burnin_length)
+            cov = np.cov(res)
+            print np.max(np.abs(npl.eig(cov)[0]))
             # net.train(res=res, data=train_target, reg=reg)
             net.train_thin(res=res, data=train_target, reg=reg)
             # net.train_sgd(res=res, data=train_target)
             # out = net.generate(data[train_length], x, test_length)
             out = net.generate_thin(data[train_length], x, test_length)
             # out = net.predict_thin(data[train_length], x, data, test_length, train_length)
-            print out
-            print out.shape
             plt.close()
             plt.plot(out.T)
             plt.plot(test_data)
