@@ -44,12 +44,12 @@ class ESN:
         optimizer = tf.train.MomentumOptimizer(0.001, 0.999).minimize(cost)
         self.net = {
             'X': X,
-            'y', y,
-            'W', W,
-            'b', b,
-            'activation', activation,
-            'cost', cost,
-            'optimizer', optimizer
+            'y': y,
+            'W': W,
+            'b': b,
+            'activation': activation,
+            'cost': cost,
+            'optimizer': optimizer
         }
 
     def run_esn_activation(self, prev_activation, datum):
@@ -132,8 +132,9 @@ class ESN:
         self.Wout = regressor.coef_
         print "finished training..."
 
-    def train_sgd_momentum(self, res, data):
-        self.Wout = 0.1 * np.random(size=(self.out_size, self.res_size))
+    def train_sgd_momentum(self, res, data, num_epochs=20):
+        for epoch in num_epochs:
+            pass
         # use tf
         pass
 
@@ -235,8 +236,9 @@ if __name__ == "__main__":
             print np.max(np.abs(eigs))
             print np.min(np.abs(eigs))
             # net.train_thin(res=res, data=train_target, reg=reg)
-            net.train_sgd(res=res, data=train_target)
+            # net.train_sgd(res=res, data=train_target)
             # net.train_sgd_ridge(res=res, data=train_target)
+            net.train_sgd_momentum(res=res, data=train_target)
             out = net.generate(data[train_length], x, test_length)
             # out = net.generate_thin(data[train_length], x, test_length)
             # out = net.predict_thin(data[train_length], x, data, test_length, train_length)
