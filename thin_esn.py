@@ -28,8 +28,29 @@ class ESN:
         self.W2 *= spectral_radius
         self.nonlinear = np.tanh
         self.activation_function = self.run_esn_activation
+        self.net = {}
+        self.setup_net()
+        tf.initialize_all_variables()
         # self.activation_function = self.run_thin_activation
         self.Wout = None #untrained as of yet
+
+    def setup_net(self):
+        X = tf.placeholder('float') ######### dims
+        y = tf.placeholder('float') ######### dims
+        W = tf.Variable(name='weight') ######### dims
+        b = tf.Variable(name='bias') ######### dims
+        activation = tf.add(tf.matmul(X, W), b)
+        cost = tf.reduce_sum(tf.pow(activation-y, 2)) / (2 * n_samples)
+        optimizer = tf.train.MomentumOptimizer(0.001, 0.999).minimize(cost)
+        self.net = {
+            'X': X,
+            'y', y,
+            'W', W,
+            'b', b,
+            'activation', activation,
+            'cost', cost,
+            'optimizer', optimizer
+        }
 
     def run_esn_activation(self, prev_activation, datum):
         biased_data = np.atleast_2d(np.hstack((1, datum))).T
