@@ -28,8 +28,8 @@ class ESN:
         self.W2 *= spectral_radius
         self.nonlinear = np.tanh
         self.activation_function = self.run_esn_activation
-        self.net = {}
         self.setup_net()
+        assert net in self
         tf.initialize_all_variables()
         # self.activation_function = self.run_thin_activation
         self.Wout = None #untrained as of yet
@@ -37,15 +37,17 @@ class ESN:
     def setup_net(self):
         X = tf.placeholder('float') ######### dims
         y = tf.placeholder('float') ######### dims
-        W = tf.Variable(name='weight') ######### dims
-        b = tf.Variable(name='bias') ######### dims
-        activation = tf.add(tf.matmul(X, W), b)
+        Wout = tf.Variable(name='weight') ######### dims
+#######################
+#######################
+#######################
+        activation = tf.matmul(X, Wout)
         cost = tf.reduce_sum(tf.pow(activation-y, 2)) / (2 * n_samples)
         optimizer = tf.train.MomentumOptimizer(0.001, 0.999).minimize(cost)
         self.net = {
             'X': X,
             'y': y,
-            'W': W,
+            'Wout': Wout,
             'b': b,
             'activation': activation,
             'cost': cost,
@@ -136,6 +138,10 @@ class ESN:
         for epoch in num_epochs:
             pass
         # use tf
+#######################
+#######################
+#######################
+#######################
         pass
 
     def generate(self, init_u, init_x, test_len):
@@ -164,6 +170,12 @@ class ESN:
             Y[:, t] = y[:, 0]
             u = y[:, 0]
         return Y
+
+    def generate_nn(self, init_u, init_x, test_len):
+        pass
+#######################
+#######################
+#######################
 
     def predict(self, init_u, init_x, data, test_len, train_len):
         u, x = init_u, init_x
