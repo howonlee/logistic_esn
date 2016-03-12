@@ -30,7 +30,6 @@ class ESN:
         self.activation_function = self.run_esn_activation
         self.setup_net()
         assert net in self
-        tf.initialize_all_variables()
         # self.activation_function = self.run_thin_activation
         self.Wout = None #untrained as of yet
 
@@ -133,14 +132,14 @@ class ESN:
         print "finished training..."
 
     def train_sgd_momentum(self, res, data, num_epochs=20):
-        for epoch in num_epochs:
-            pass
-        # use tf
-#######################
-#######################
-#######################
-#######################
-        pass
+        with tf.Session() as sess:
+            tf.initialize_all_variables()
+            for epoch in num_epochs:
+                for idx, res_datum in enumerate(res): # hope this works
+                    out_datum = data[idx]
+#################
+#################
+#################
 
     def generate(self, init_u, init_x, test_len):
         u, x = init_u, init_x
