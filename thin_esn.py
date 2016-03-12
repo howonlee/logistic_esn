@@ -35,14 +35,12 @@ class ESN:
         self.Wout = None #untrained as of yet
 
     def setup_net(self):
-        X = tf.placeholder('float') ######### dims
-        y = tf.placeholder('float') ######### dims
-        Wout = tf.Variable(name='weight') ######### dims
-#######################
-#######################
-#######################
+        X = tf.placeholder('float', [None, self.res_size])
+        y = tf.placeholder('float', [None, self.out_size])
+        Wout = tf.Variable(tf.random_normal([self.res_size, self.out_size]) * 0.1)
         activation = tf.matmul(X, Wout)
         cost = tf.reduce_sum(tf.pow(activation-y, 2)) / (2 * n_samples)
+        # eventually, poke about for a NAG optimizer
         optimizer = tf.train.MomentumOptimizer(0.001, 0.999).minimize(cost)
         self.net = {
             'X': X,
